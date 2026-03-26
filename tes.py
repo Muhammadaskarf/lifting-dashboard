@@ -8,19 +8,29 @@ import pandas as pd
 st.set_page_config(page_title="Lifting Dashboard", layout="wide")
 
 # =========================
-# STYLE (BIAR KELIHATAN APP BANGET)
+# CUSTOM STYLE
 # =========================
 st.markdown("""
 <style>
-.big-font {font-size:20px !important; font-weight:600;}
-.safe {color: green; font-weight: bold;}
-.danger {color: red; font-weight: bold;}
-.warning {color: orange; font-weight: bold;}
 .card {
     padding: 15px;
-    border-radius: 10px;
+    border-radius: 12px;
     background-color: #f5f7fa;
+    text-align: center;
 }
+.card-title {
+    font-size: 14px;
+    color: #888;
+}
+.card-value {
+    font-size: 22px;
+    font-weight: bold;
+}
+.safe {color: green; font-weight: bold;}
+.danger {color: red; font-weight: bold;}
+.low {color: green; font-weight: bold;}
+.medium {color: orange; font-weight: bold;}
+.high {color: red; font-weight: bold;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -93,7 +103,7 @@ crane_req = total_dyn
 crane_chart = get_crane_capacity(radius)
 
 # =========================
-# STATUS FUNCTION
+# STATUS & RISK
 # =========================
 def status(actual, required):
     return "SAFE" if actual >= required else "NOT SAFE"
@@ -108,12 +118,6 @@ def risk_calc(ratio, angle, cog, sling_type):
     if r <= 2: return "LOW"
     elif r <=5: return "MEDIUM"
     else: return "HIGH"
-
-def color_status(val):
-    if val == "SAFE":
-        return "safe"
-    else:
-        return "danger"
 
 # =========================
 # DATAFRAME
@@ -144,48 +148,66 @@ df = pd.DataFrame({
 }).round(2)
 
 # =========================
+# COLOR TABLE
+# =========================
+def highlight(val):
+    if val == "SAFE":
+        return "color: green; font-weight:bold"
+    if val == "NOT SAFE":
+        return "color: red; font-weight:bold"
+    if val == "LOW":
+        return "color: green; font-weight:bold"
+    if val == "MEDIUM":
+        return "color: orange; font-weight:bold"
+    if val == "HIGH":
+        return "color: red; font-weight:bold"
+    return ""
+
+styled_df = df.style.applymap(highlight)
+
+# =========================
 # UI HEADER
 # =========================
 st.title("⚓ Offshore Lifting Dashboard")
 
-col1, col2, col3, col4 = st.columns(4)
+# ===== TOP CARDS =====
+c1, c2, c3, c4 = st.columns(4)
 
-col1.metric("Load (ton)", load)
-col2.metric("Angle (°)", angle)
-col3.metric("Legs", legs)
-col4.metric("Radius (m)", radius)
+c1.markdown(f'<div class="card"><div class="card-title">Load</div><div class="card-value">{load} ton</div></div>', unsafe_allow_html=True)
+c2.markdown(f'<div class="card"><div class="card-title">Angle</div><div class="card-value">{angle}°</div></div>', unsafe_allow_html=True)
+c3.markdown(f'<div class="card"><div class="card-title">Legs</div><div class="card-value">{legs}</div></div>', unsafe_allow_html=True)
+c4.markdown(f'<div class="card"><div class="card-title">Radius</div><div class="card-value">{radius} m</div></div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
 # =========================
-# MAIN LAYOUT
+# TABLE
 # =========================
-left, right = st.columns([2,1])
+st.subheader("📊 Equipment Calculation")
+st.dataframe(styled_df, use_container_width=True)
 
-# ===== LEFT: TABLE =====
-with left:
-    st.subheader("📊 Equipment Calculation")
+# =========================
+# SUMMARY BELOW TABLE
+# =========================
+st.markdown("---")
+st.subheader("📌 Summary")
 
-    st.dataframe(df, use_container_width=True)
+cols = st.columns(4)
 
-# ===== RIGHT: SUMMARY =====
-with right:
-    st.subheader("📌 Summary")
+for i in range(len(df)):
+    eq = df.loc[i,"Equipment"]
+    stat = df.loc[i,"Status"]
+    risk = df.loc[i,"Risk"]
 
-    for i in range(len(df)):
-        eq = df.loc[i,"Equipment"]
-        stat = df.loc[i,"Status"]
-        risk = df.loc[i,"Risk"]
+    color = "green" if stat=="SAFE" else "red"
 
-        color = "green" if stat=="SAFE" else "red"
-
-        st.markdown(f"""
-        <div class="card">
-        <b>{eq}</b><br>
-        Status: <span style="color:{color}">{stat}</span><br>
-        Risk: {risk}
-        </div>
-        """, unsafe_allow_html=True)
+    cols[i].markdown(f"""
+    <div class="card">
+    <b>{eq}</b><br>
+    Status: <span style="color:{color}">{stat}</span><br>
+    Risk: {risk}
+    </div>
+    """, unsafe_allow_html=True)
 
 # =========================
 # FINAL STATUS
@@ -198,7 +220,7 @@ else:
     st.error("❌ FINAL STATUS: NOT SAFE")
 
 # =========================
-# WARNING
+# WARNINGS
 # =========================
 if angle > 60:
     st.warning("⚠️ Angle > 60°, risk meningkat signifikan")
