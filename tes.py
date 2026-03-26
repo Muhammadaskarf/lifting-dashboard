@@ -18,12 +18,18 @@ st.markdown("""
     background-color: #f5f7fa;
     text-align: center;
 }
+.card2 {
+    padding: 15px;
+    border-radius: 12px;
+    background-color: #e3f2fd;
+    text-align: center;
+}
 .card-title {
-    font-size: 14px;
-    color: #888;
+    font-size: 13px;
+    color: #666;
 }
 .card-value {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: bold;
 }
 </style>
@@ -51,7 +57,7 @@ def get_crane_capacity(radius):
     return 0
 
 # =========================
-# SIDEBAR INPUT
+# INPUT
 # =========================
 st.sidebar.title("⚙️ Input Lifting")
 
@@ -70,15 +76,12 @@ sling_type = st.sidebar.selectbox("Sling Type", ["Chain","Wire Rope","Webbing"])
 sling = st.sidebar.selectbox("Sling Capacity (ton)", SLING_OPTIONS, index=4)
 shackle = st.sidebar.selectbox("Shackle Capacity (ton)", SHACKLE_OPTIONS, index=4)
 hook = st.sidebar.selectbox("Hook Capacity (ton)", HOOK_OPTIONS, index=2)
-
-# 🔥 FIX: Crane actual input
 crane_input = st.sidebar.number_input("Crane Capacity Actual (ton)", 1.0, 500.0, 20.0)
 
 # =========================
 # CALCULATION
 # =========================
 eff = 2 if legs==3 else 3 if legs==4 else legs
-
 angle_v = 90 - angle
 cos_a = math.cos(math.radians(angle_v))
 
@@ -162,41 +165,43 @@ def highlight(val):
     return ""
 
 styled_df = df.style.format({
-    "Min Required": "{:.3f}",
-    "Recommended": "{:.3f}",
-    "Actual": "{:.3f}",
-    "Utilization": "{:.3f}"
+    "Min Required": "{:.2f}",
+    "Recommended": "{:.2f}",
+    "Actual": "{:.2f}",
+    "Utilization": "{:.2f}"
 }).applymap(highlight)
 
 # =========================
-# UI HEADER
+# UI
 # =========================
 st.title("⚓ Offshore Lifting Dashboard")
 
-# TOP CARDS
-c1, c2, c3, c4 = st.columns(4)
+# 🔹 ROW 1 - LIFTING PARAMETER
+row1 = st.columns(4)
 
-c1.markdown(f'<div class="card"><div class="card-title">Load</div><div class="card-value">{load:.3f}</div></div>', unsafe_allow_html=True)
-c2.markdown(f'<div class="card"><div class="card-title">Angle</div><div class="card-value">{angle:.3f}</div></div>', unsafe_allow_html=True)
-c3.markdown(f'<div class="card"><div class="card-title">Legs</div><div class="card-value">{legs}</div></div>', unsafe_allow_html=True)
-c4.markdown(f'<div class="card"><div class="card-title">Radius</div><div class="card-value">{radius:.3f}</div></div>', unsafe_allow_html=True)
+row1[0].markdown(f'<div class="card"><div class="card-title">Load</div><div class="card-value">{load:.2f} ton</div></div>', unsafe_allow_html=True)
+row1[1].markdown(f'<div class="card"><div class="card-title">Angle</div><div class="card-value">{angle:.2f} °</div></div>', unsafe_allow_html=True)
+row1[2].markdown(f'<div class="card"><div class="card-title">Legs</div><div class="card-value">{legs}</div></div>', unsafe_allow_html=True)
+row1[3].markdown(f'<div class="card"><div class="card-title">Radius</div><div class="card-value">{radius:.2f} m</div></div>', unsafe_allow_html=True)
+
+# 🔹 ROW 2 - EQUIPMENT (WARNA BEDA)
+row2 = st.columns(4)
+
+row2[0].markdown(f'<div class="card2"><div class="card-title">Sling</div><div class="card-value">{sling:.2f} ton</div></div>', unsafe_allow_html=True)
+row2[1].markdown(f'<div class="card2"><div class="card-title">Shackle</div><div class="card-value">{shackle:.2f} ton</div></div>', unsafe_allow_html=True)
+row2[2].markdown(f'<div class="card2"><div class="card-title">Hook</div><div class="card-value">{hook:.2f} ton</div></div>', unsafe_allow_html=True)
+row2[3].markdown(f'<div class="card2"><div class="card-title">Crane</div><div class="card-value">{crane_input:.2f} ton</div></div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
-# =========================
-# INFO CRANE CHART
-# =========================
-st.info(f"Crane Load Chart Capacity @ {radius} m = {crane_chart:.3f} ton")
+# INFO CHART
+st.info(f"Crane Load Chart @ {radius:.2f} m = {crane_chart:.2f} ton")
 
-# =========================
 # TABLE
-# =========================
 st.subheader("📊 Equipment Calculation")
 st.dataframe(styled_df, use_container_width=True)
 
-# =========================
 # SUMMARY
-# =========================
 st.markdown("---")
 st.subheader("📌 Summary")
 
@@ -217,9 +222,7 @@ for i in range(len(df)):
     </div>
     """, unsafe_allow_html=True)
 
-# =========================
 # FINAL STATUS
-# =========================
 st.markdown("---")
 
 if all(df["Status"]=="SAFE"):
@@ -227,9 +230,7 @@ if all(df["Status"]=="SAFE"):
 else:
     st.error("❌ FINAL STATUS: NOT SAFE")
 
-# =========================
-# WARNINGS
-# =========================
+# WARNING
 if angle > 60:
     st.warning("⚠️ Angle > 60°, risk meningkat signifikan")
 
