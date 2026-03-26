@@ -8,7 +8,7 @@ import pandas as pd
 st.set_page_config(page_title="Lifting Dashboard", layout="wide")
 
 # =========================
-# CUSTOM STYLE
+# STYLE
 # =========================
 st.markdown("""
 <style>
@@ -26,11 +26,6 @@ st.markdown("""
     font-size: 22px;
     font-weight: bold;
 }
-.safe {color: green; font-weight: bold;}
-.danger {color: red; font-weight: bold;}
-.low {color: green; font-weight: bold;}
-.medium {color: orange; font-weight: bold;}
-.high {color: red; font-weight: bold;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -75,6 +70,9 @@ sling_type = st.sidebar.selectbox("Sling Type", ["Chain","Wire Rope","Webbing"])
 sling = st.sidebar.selectbox("Sling Capacity (ton)", SLING_OPTIONS, index=4)
 shackle = st.sidebar.selectbox("Shackle Capacity (ton)", SHACKLE_OPTIONS, index=4)
 hook = st.sidebar.selectbox("Hook Capacity (ton)", HOOK_OPTIONS, index=2)
+
+# 🔥 FIX: Crane actual input
+crane_input = st.sidebar.number_input("Crane Capacity Actual (ton)", 1.0, 500.0, 20.0)
 
 # =========================
 # CALCULATION
@@ -126,29 +124,29 @@ df = pd.DataFrame({
     "Equipment":["Sling","Shackle","Hook","Crane"],
     "Min Required":[sling_req, shackle_req, hook_req, crane_req],
     "Recommended":[sling_rec, shackle_rec, hook_rec, crane_req],
-    "Actual":[sling, shackle, hook, crane_chart],
+    "Actual":[sling, shackle, hook, crane_input],
     "Utilization":[
         sling_req/sling,
         shackle_req/shackle,
         hook_req/hook,
-        crane_req/crane_chart if crane_chart>0 else 1
+        crane_req/crane_input if crane_input>0 else 1
     ],
     "Status":[
         status(sling, sling_rec),
         status(shackle, shackle_rec),
         status(hook, hook_rec),
-        status(crane_chart, crane_req)
+        status(crane_input, crane_req)
     ],
     "Risk":[
         risk_calc(sling_req/sling, angle, cog, sling_type),
         risk_calc(shackle_req/shackle, angle, cog, sling_type),
         risk_calc(hook_req/hook, angle, cog, sling_type),
-        risk_calc(crane_req/crane_chart if crane_chart>0 else 1, angle, cog, sling_type)
+        risk_calc(crane_req/crane_input if crane_input>0 else 1, angle, cog, sling_type)
     ]
-}).round(2)
+})
 
 # =========================
-# COLOR TABLE
+# STYLE TABLE
 # =========================
 def highlight(val):
     if val == "SAFE":
@@ -163,22 +161,32 @@ def highlight(val):
         return "color: red; font-weight:bold"
     return ""
 
-styled_df = df.style.applymap(highlight)
+styled_df = df.style.format({
+    "Min Required": "{:.3f}",
+    "Recommended": "{:.3f}",
+    "Actual": "{:.3f}",
+    "Utilization": "{:.3f}"
+}).applymap(highlight)
 
 # =========================
 # UI HEADER
 # =========================
 st.title("⚓ Offshore Lifting Dashboard")
 
-# ===== TOP CARDS =====
+# TOP CARDS
 c1, c2, c3, c4 = st.columns(4)
 
-c1.markdown(f'<div class="card"><div class="card-title">Load</div><div class="card-value">{load} ton</div></div>', unsafe_allow_html=True)
-c2.markdown(f'<div class="card"><div class="card-title">Angle</div><div class="card-value">{angle}°</div></div>', unsafe_allow_html=True)
+c1.markdown(f'<div class="card"><div class="card-title">Load</div><div class="card-value">{load:.3f}</div></div>', unsafe_allow_html=True)
+c2.markdown(f'<div class="card"><div class="card-title">Angle</div><div class="card-value">{angle:.3f}</div></div>', unsafe_allow_html=True)
 c3.markdown(f'<div class="card"><div class="card-title">Legs</div><div class="card-value">{legs}</div></div>', unsafe_allow_html=True)
-c4.markdown(f'<div class="card"><div class="card-title">Radius</div><div class="card-value">{radius} m</div></div>', unsafe_allow_html=True)
+c4.markdown(f'<div class="card"><div class="card-title">Radius</div><div class="card-value">{radius:.3f}</div></div>', unsafe_allow_html=True)
 
 st.markdown("---")
+
+# =========================
+# INFO CRANE CHART
+# =========================
+st.info(f"Crane Load Chart Capacity @ {radius} m = {crane_chart:.3f} ton")
 
 # =========================
 # TABLE
@@ -187,7 +195,7 @@ st.subheader("📊 Equipment Calculation")
 st.dataframe(styled_df, use_container_width=True)
 
 # =========================
-# SUMMARY BELOW TABLE
+# SUMMARY
 # =========================
 st.markdown("---")
 st.subheader("📌 Summary")
